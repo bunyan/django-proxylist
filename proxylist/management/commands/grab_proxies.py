@@ -87,6 +87,12 @@ class GrabProxies(Spider):
         for config in self.configs:
             for url in config.get("urls"):
                 yield Task('search', url=url, **config)
+        # samair.ru
+        for p in range(1, 31):
+            page = str(p)
+            if p < 10:
+                page = '0%s' % p
+            yield Task('samair', url='http://samair.ru/proxy/proxy-%s.htm' % page)
 
     def task_search(self, grab, task):
         # if grab.doc.select(task.xpath).exists():
@@ -95,6 +101,10 @@ class GrabProxies(Spider):
             for element in grab.xpath_list(task.xpath):
                 # yield Task('find_proxy', url=element.attr('href'))
                 yield Task('find_proxy', url=element.get('href'))
+
+    def task_samair(self, grab, task):
+        url = 'http://samair.ru%s' % grab.css_list('a:contains("these proxies in IP:Port format only")')[0].get('href')
+        yield Task('find_proxy', url=url)
 
     def task_find_proxy(self, grab, task):
         for proxy in re.findall(self.proxy_re, grab.response.body):
@@ -118,7 +128,8 @@ def grab_proxies():
     if settings.DEBUG:
         print spider.render_stats()
 
-    check_proxies()
+    if defaults.CHECK_AFTER_GRAB:
+        check_proxies()
 
 
 class Command(BaseCommand):
